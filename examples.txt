@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+<title>JSML Test</title>
+<script type="text/javascript" src="JSML.js"></script>
+<script>
+window.onload = function () {
+
+// templates
+
+var Box = function (inline) { return new Element(inline ? 'span' : 'div'); }
+var Heading = function (level) { return new Element('h' + level); }
+var Separator = function () { return new Element('hr'); }
+var Paragraph = function () { return new Element('p'); }
+var Emphasis = function () { return new Element('em'); }
+var List = function (ordered) { return new Element(ordered ? 'ol' : 'ul'); }
+var ListItem = function () { return new Element('li'); }
+
+var TabBox = Box;
+var Tabs = function () {
+	return new Box.style({overflow: 'auto'}).events({create: function () {
+		for (var node = this.firstChild; node; node = node.nextSibling) {
+			node.style.cssFloat = 'left';
+			node.onclick = function () { alert('hi'); }
+		}
+	}});
+}
+var TabPanels = function () {
+	return new Box.events({create: function () {
+		for (var node = this.firstChild; node && (node = node.nextSibling); )
+			node.style.display = 'none';
+	}});
+}
+
+// content
+
+var content = box([
+	// heading
+	stack([
+		heading({level: 1}, ['JSML Example']),
+		paragraph([
+			emphasis(['This is an example of the JSML markup language']),
+			paragraph(['JSML is a simple way to markup HTML content in JavaScript. It also provides a simple way to template HTML content.'])
+		})
+	])
+	
+	// heading
+	stack(
+		heading({level: 1}, 'JSML Example'),
+		paragraph(
+			emphasis('This is an example of the ', emphasis('JSML'), ' markup language'),
+			paragraph('JSML is a simple way to markup HTML content in JavaScript. It also provides a simple way to template HTML content.')
+		)
+	),
+
+	// heading
+	stack(
+		$title = heading({level: 1}, 'JSML Example'),
+		para(
+			em('This is an example of the ', em('JSML'), ' markup language'),
+			para('JSML is a simple way to markup HTML content in JavaScript. It also provides a simple way to template HTML content.'),
+			function click(e) {
+				$title('JSML Example works!')
+			}
+		)
+	),
+	
+	tabset(
+		tab('Tab One', 'This is the first tab!')
+		tab('Tab Two', 'This is the second tab!')
+		tab('Tab Three', 'This is the third tab!')
+	),
+
+	// heading
+	heading({level: 1}).content('JSML Example'),
+	paragraph().content(
+		emphasis().content('This is an example of the JSML markup language'),
+		paragraph().content('JSML is a simple way to markup HTML content in JavaScript. It also provides a simple way to template HTML content.')
+	)
+	
+	separator()
+	
+	// more content
+	paragraph.content('I sure love separators...'),
+	list.content(
+		listItem.content('Here is a list.'),
+		listItem.content('It is as cool as the other lists.'),
+		listItem.content('But will never know true love.')
+	),
+	
+	new Separator,
+	
+	// tab view
+	new TabBox.content(
+		new Tabs.content(new Box.content('Tab 1'), new Box.content('Tab 2'), new Box.content('Tab 3')),
+		new TabPanels.content(
+			new Box.content('Here is the content of tab 1.'),
+			new Box.content('Here is the content of tab 2.'),
+			new Box.content('Here is the content of tab 3.')
+		)
+	)
+	
+	// tab view
+//	TabBox
+//		.tab(Box.content('Tab 1'), Box.content('Here is the content of tab 1.')),
+//		.tab(Box.content('Tab 2'), Box.content('Here is the content of tab 2.')),
+//		.tab(Box.content('Tab 3'), Box.content('Here is the content of tab 3.'))
+);
+
+document.body.appendChild(content.create());
+
+}
+</script>
+</head>
+<body>
+</body>
+</html>

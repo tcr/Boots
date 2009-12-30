@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <title>Boots</title>
+	<link href="Boots.css" rel="stylesheet">
+	<script src="Boots.js"></script>
+  </head>
+  <body>
+    <script>
+	
+// http://the-shoebox.org/apps/126
+	
+function calculate() {
+	return $hours.text() * $wage.text() * ((100-$tax.text())/100.0) * 4.3
+}
+
+Boots.app({title: 'Little Helper v0.3', width: 200, height: 235},
+	stack({margin: 10},
+		caption('Awful numbers'),
+		flow({width: 150},
+			para('Hours/week'),
+			$hours = edit_line({width: 30}, function change() { $money(calculate()); }),
+			
+			para('Money/hour'),
+			$wage = edit_line(16, {width: 30}, function change() { $money(calculate()); }),
+			
+			para('Tax (in %)'),
+			$tax = edit_line(20, {width: 30}, function change() { $money(calculate()); })
+		)
+	),
+	
+	caption('Rags or riches'),
+	$money = para('0.0')
+)
+	
+	</script>
+  </body>
+</html>

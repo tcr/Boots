@@ -1,0 +1,18 @@
+* { -webkit-box-sizing: border-box; }
+html { background: #333; }
+body { position: relative; background: #bbb; margin: 50px auto;}
+
+div.stack > * { display: block; }
+div.flow > * { display: inline-block; }
+div.stack, div.flow { position: relative; }
+
+h1, h2, h3, h4, h5, h6 { font-weight: normal; }
+h1 { font-size: 48px; }
+h2 { font-size: 34px; }
+h3 { font-size: 26px; }
+h4 { font-size: 18px; }
+h5 { font-size: 14px; }
+body { font-size: 12px; }
+h6 { font-size: 10px; }
+
+/*input[type="text"] { width: 200px; height: 28px; }*/
