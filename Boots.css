@@ -1,5 +1,5 @@
 * { -webkit-box-sizing: border-box; -moz-box-sizing: border-box; }
-html { background: #333; font-family: sans-serif; }
+html { background: #333; font-family: sans-serif; overflow: hidden; }
 body { position: relative; margin: 50px auto;}
 
 div.stack > * { display: block; }

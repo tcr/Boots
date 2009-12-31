@@ -127,7 +127,7 @@ function isContentValue(elem) {
 }
 
 function normalizeUnits(val) {
-	return /^[0-9]+$/.test(val) ? val + 'px' : val;
+	return !isNaN(val) ? val + 'px' : val;
 }
 
 function getElementPosition(el) {
@@ -439,7 +439,7 @@ function sup() {
  */
 
 function normalizeColor(color) {
-	return (typeof color == 'string') ? new Color(color) : color;
+	return (typeof color == 'string') ? new Color(color) : color || new Color('#000');
 }
  
 Color = Structure.extend({
@@ -516,12 +516,11 @@ function BootsShape(shape, props) {
 		shape.setAttribute('stroke', normalizeColor(props.stroke).apply(svg, shape));
 	if (props.strokewidth)
 		shape.setAttribute('stroke-width', props.strokewidth);
-		
-	// remove interfering attributes
-	//[TODO] wtf
-	delete props.width;
-	delete props.height;
-	delete props.stroke;
+	// 'center' attribute
+	if (props.center) {
+		props.margin_left = -props.width / 2;
+		props.margin_top = -props.height / 2;
+	}
 	
 	var ret = new BootsElement(svg);
 	return ret.apply(ret, [props]);
@@ -535,28 +534,32 @@ function background(props) {
 
 function rect(props) {
 	var rect = new SVGElement('rect');
-	rect.setAttribute('width', props.width || 0);
-	rect.setAttribute('height', props.height || 0);
+	rect.setAttribute('width', '100%');
+	rect.setAttribute('height', '100%');
 	rect.setAttribute('y', 0);
 	rect.setAttribute('x', 0);
 	return new BootsShape(rect, props);
 }
 
 function line(props) {
+	//[TODO] convert to width/height orientation?
 	var line = new SVGElement('line');
 	line.setAttribute('x1', 0);
 	line.setAttribute('y1', 0);
-	line.setAttribute('x2', (props.x2||0) - (props.x||0));	//[todo] what if props.left !?
-	line.setAttribute('y2', (props.y2||0) - (props.y||0));
+	line.setAttribute('x2', (props.x2||0) - (props.x||props.left||0));
+	line.setAttribute('y2', (props.y2||0) - (props.y||props.top||0));
 	return new BootsShape(line, props);
 }
 
 function oval(props) {
-	//[TODO] center: attr
-	var oval = new SVGElement('circle');
-	oval.setAttribute('r', props.radius || 0);
-	oval.setAttribute('cy', props.radius || 0);
-	oval.setAttribute('cx', props.radius || 0);
+	// convert radius property
+	if (props.radius)
+		props.height = props.width = props.radius*2;
+	var oval = new SVGElement('ellipse');
+	oval.setAttribute('rx', '50%');
+	oval.setAttribute('ry', '50%');
+	oval.setAttribute('cy', props.height/2);
+	oval.setAttribute('cx', props.width/2);
 	return new BootsShape(oval, props);
 }
 
