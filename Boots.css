@@ -1,6 +1,6 @@
-* { -webkit-box-sizing: border-box; }
-html { background: #333; }
-body { position: relative; background: #bbb; margin: 50px auto;}
+* { -webkit-box-sizing: border-box; z-index: 5; }
+html { background: #333; font-family: sans-serif; }
+body { position: relative; margin: 50px auto;}
 
 div.stack > * { display: block; }
 div.flow > * { display: inline-block; }
@@ -15,4 +15,5 @@ h5 { font-size: 14px; }
 body { font-size: 12px; }
 h6 { font-size: 10px; }
 
-/*input[type="text"] { width: 200px; height: 28px; }*/
+input, button { position: relative; }
+input[type="text"] { width: 200px; height: 28px; }
