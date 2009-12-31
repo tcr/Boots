@@ -159,6 +159,9 @@ function getMouseXY(e) {
 	return {x: posx, y: posy};
 }
 
+function getFunctionName(f) {
+	return f.name || f.toString().match(/function\s*(.+?)\s*\(/)[1];
+}
 
 /*
  * Boots
@@ -167,6 +170,120 @@ function getMouseXY(e) {
 function isBootsElement(elem) {
 	return !!elem.Boots;
 }
+
+var BootsElement = Functor({
+	Boots: true,
+	elem: null,
+	artNode: null,
+	props: null,
+	events: null,
+	
+	constructor: function (elem) {
+		// object properties
+		this.elem = elem;
+		var events = this.events = {};
+		var props = this.props = {};
+		
+		// events
+		// 'motion' event
+		this.elem.onmousemove = function (e) {
+			if (events.onmotion) {
+				var left = getMouseXY(e || window.event).x - getAbsolutePosition(document.body).x
+				var top = getMouseXY(e || window.event).y - getAbsolutePosition(document.body).y;
+				events.onmotion.call(elem, left, top);
+			}
+		}
+		// 'click' event
+		this.elem.onclick = function (e) {	//[todo] expand yo
+			if (events.onclick)
+				events.onclick.call(elem);
+		}
+	},
+	
+	call: function () {			
+		var content = [];
+		// parse arguments
+		for (var i = 0; i < arguments.length; i++)
+			if (typeof arguments[i] == 'object')
+				this.props = arguments[i];
+			else if (typeof arguments[i] == 'function' && !isBootsElement(arguments[i]))
+				this.events[getFunctionName(arguments[i])] = arguments[i];
+			else
+				content.push(arguments[i]);
+		// load content
+		if (content.length)
+			this.clear.apply(this, content);
+		
+		// set props
+		for (var prop in this.props)
+			if (prop in elemProp)
+				elemProp[prop](this.elem, this.props[prop]);
+				
+//[TODO] styles
+	},
+	
+	// element manipulation
+	
+	_insert: function (parent, child, args) {
+		// content
+		if (isContentValue(parent)) {
+			parent.value += (args[0] || '');
+		} else {
+			for (var i = 0; i < args.length; i++)
+				if (args[i] && isBootsElement(args[i]))
+					parent.insertBefore(args[i].elem, child);
+				else
+					parent.insertBefore(document.createTextNode(args[i]), child);
+		}
+	},
+	clear: function () {
+		if (isContentValue(this.elem))
+			this.elem.value = '';
+		else {
+			while (this.elem.firstChild)
+				this.elem.removeChild(this.elem.firstChild);
+			this.artNode = null;
+		}
+		this._insert(this.elem, null, arguments);
+	},
+	append: function () {
+		this._insert(this.elem, null, arguments);
+		// ensure art node always comes first
+		if (this.artNode)
+			this.elem.insertBefore(this.artNode, this.elem.firstChild);
+	},
+	prepend: function () {
+		this._insert(this.elem, this.elem.firstChild, arguments);
+	},
+	after: function () {
+		this._insert(this.elem.parentNode, this.elem.nextSibling, arguments);
+	},
+	before: function () {
+		this._insert(this.elem.parentNode, this.elem, arguments);
+	},
+	remove: function () {
+		this.elem.parentNode.removeChild(ret.elem);
+	},
+	
+	// property reading
+	
+	text: function () { return this.elem.innerHTML || this.elem.value; }, //[TODO] innerText
+	height: function () { return this.elem.offsetHeight; },
+	width: function () { return this.elem.offsetWidth; },
+	left: function () { return getAbsolutePosition(this.elem).x - getAbsolutePosition(document.body).x; },
+	top: function () { return getAbsolutePosition(this.elem).y - getAbsolutePosition(document.body).y; },
+	toString: function () { return '[Boots ' + this.elem.tagName + ']'; },
+	
+	// property manipulation
+	
+	hide: function () { this.elem.style.display = 'none'; },
+	show: function () { this.elem.style.display = ''; },
+	move: function (t, l) {
+		this.elem.style.position = 'absolute';
+		this.elem.style.top = t + 'px';
+		this.elem.style.left = l + 'px';
+	}
+});
 
 var elemProp = {
 	// styles
@@ -188,49 +305,9 @@ var elemProp = {
 	title: function (elem, val) { document.title = val; }
 };
 
-function getFunctionName(f) {
-	return f.name || f.toString().match(/function\s*(.+?)\s*\(/)[1];
-}
-
-var BootsElement = Functor({
-	Boots: true,
-	elem: null,
-	artNode: null,
-	props: null,
-	events: null,
-	
-	constructor: function (elem) {
-		this.elem = elem;
-		this.events = {};
-		this.props = {};
-	},
-	
-	call: function () {			
-		var content = [];
-		// parse arguments
-		for (var i = 0; i < arguments.length; i++)
-			if (typeof arguments[i] == 'object')
-				this.props = arguments[i];
-			else if (typeof arguments[i] == 'function' && !isBootsElement(arguments[i]))
-				this.events[getFunctionName(arguments[i])] = arguments[i];
-			else
-				content.push(arguments[i]);
-		// load content
-		if (content.length)
-			this.clear.apply(this, content);
-
-		// events
-		for (var name in this.events)
-			this.elem['on' + name] = this.events[name];
-		
-		// props
-		for (var prop in this.props)
-			if (prop in elemProp)
-				elemProp[prop](this.elem, this.props[prop]);
-				
-//[TODO] styles
-	};
-});
+/*
+ * Boots class
+ */
 
 var Boots = {
 	app: function () {
@@ -239,109 +316,7 @@ var Boots = {
 		return ret;
 	},
 	create: function (elem) {
-		var ret = function () {			
-			var content = [];
-			// parse arguments
-			for (var i = 0; i < arguments.length; i++)
-				if (typeof arguments[i] == 'object')
-					ret.props = arguments[i];
-				else if (typeof arguments[i] == 'function' && !isBootsElement(arguments[i]))
-					ret.events[getFunctionName(arguments[i])] = arguments[i];
-				else
-					content.push(arguments[i]);
-			// load content
-			if (content.length)
-				ret.clear.apply(ret, content);
-
-			// events
-			for (var name in ret.events)
-				ret.elem['on' + name] = ret.events[name];
-			
-			// props
-			for (var prop in ret.props)
-				if (prop in elemProp)
-					elemProp[prop](ret.elem, ret.props[prop]);
-					
-	//[TODO] styles
-	
-			return ret;
-		};
-		ret.Boots = true;
-		ret.elem = elem;
-		ret.artNode = null;
-		ret.props = {};
-		ret.events = {};
-		
-		// element manipulation
-		function insert(parent, child, args) {
-			// content
-			if (isContentValue(parent)) {
-				parent.value += (args[0] || '');
-			} else {
-				for (var i = 0; i < args.length; i++)
-					if (args[i] && isBootsElement(args[i]))
-						parent.insertBefore(args[i].elem, child);
-					else
-						parent.insertBefore(document.createTextNode(args[i]), child);
-			}
-			
-			// ensure art node always comes first
-			if (ret.artNode)
-				ret.elem.insertBefore(ret.artNode, ret.elem.firstChild);
-		}
-		ret.clear = function () {
-			if (isContentValue(ret.elem))
-				ret.elem.value = '';
-			else {
-				while (ret.elem.firstChild)
-					ret.elem.removeChild(ret.elem.firstChild);
-				ret.artNode = null;
-			}
-			insert(ret.elem, null, arguments);
-		}
-		ret.append = function () {
-			insert(ret.elem, null, arguments);
-		}
-		ret.prepend = function () {
-			insert(ret.elem, ret.elem.firstChild, arguments);
-		}
-		ret.after = function () {
-			insert(ret.elem.parentNode, ret.elem.nextSibling, arguments);
-		}
-		ret.before = function () {
-			insert(ret.elem.parentNode, ret.elem, arguments);
-		}
-		
-		// property reading
-		ret.text = function () { return ret.elem.innerHTML || ret.elem.value; } //[TODO] innerText
-		ret.height = function () { return ret.elem.offsetHeight; }
-		ret.width = function () { return ret.elem.offsetWidth; }
-		ret.left = function () { return getAbsolutePosition(ret.elem).x - getAbsolutePosition(document.body).x; }
-		ret.top = function () { return getAbsolutePosition(ret.elem).y - getAbsolutePosition(document.body).y; }
-		ret.toString = function () { return '[Boots ' + ret.elem.tagName + ']'; }
-		
-		// property manipulation
-		ret.hide = function () { ret.elem.style.display = 'none'; }
-		ret.show = function () { ret.elem.style.display = ''; }
-		ret.move = function (t, l) {
-			ret.elem.style.position = 'absolute';
-			ret.elem.style.top = t + 'px';
-			ret.elem.style.left = l + 'px';
-		}
-		ret.remove = function () {
-			ret.elem.parentNode.removeChild(ret.elem);
-		}
-		
-		// 'motion' event
-		ret.elem.onmousemove = function (e) {
-			if (ret.elem.onmotion) {
-				var left = getMouseXY(e || window.event).x - getAbsolutePosition(document.body).x
-				var top = getMouseXY(e || window.event).y - getAbsolutePosition(document.body).y;
-				ret.elem.onmotion(left, top);
-			}
-		}
-		
-		return ret;
+		return new BootsElement(elem);
 	}
 };
 
@@ -535,7 +510,7 @@ blue = rgb(0, 0, 255);
  * art
  */
  
-Shape = Structure.extend({
+BootsShape = Structure.extend({
 	shape: null,
 	props: null,
 	constructor: function (shape, props) {
@@ -551,7 +526,59 @@ Shape = Structure.extend({
 		if (this.props.strokewidth)
 			this.shape.setAttribute('strok-width', this.props.strokewidth);
 		svg.appendChild(this.shape);
+	},
+	
+	
+	_appendTo: function (parent) {
+	},
+	_prependTo: function (parent) {
+	},
+	_insertAfter: function (sibling) {
+	},
+	_insertBefore: function (sibling) {
 	}
+	
+	
+	_insert: function (parent, child, args) {
+		// content
+		if (isContentValue(parent)) {
+			parent.value += (args[0] || '');
+		} else {
+			for (var i = 0; i < args.length; i++)
+				if (args[i] && isBootsElement(args[i]))
+					parent.insertBefore(args[i].elem, child);
+				else
+					parent.insertBefore(document.createTextNode(args[i]), child);
+		}
+	},
+	clear: function () {
+		if (isContentValue(this.elem))
+			this.elem.value = '';
+		else {
+			while (this.elem.firstChild)
+				this.elem.removeChild(this.elem.firstChild);
+			this.artNode = null;
+		}
+		this._insert(this.elem, null, arguments);
+	},
+	append: function () {
+		this._insert(this.elem, null, arguments);
+		// ensure art node always comes first
+		if (this.artNode)
+			this.elem.insertBefore(this.artNode, this.elem.firstChild);
+	},
+	prepend: function () {
+		this._insert(this.elem, this.elem.firstChild, arguments);
+	},
+	after: function () {
+		this._insert(this.elem.parentNode, this.elem.nextSibling, arguments);
+	},
+	before: function () {
+		this._insert(this.elem.parentNode, this.elem, arguments);
+	},
+	remove: function () {
+		this.elem.parentNode.removeChild(ret.elem);
+	},
 });
 
 //[TODO] have the "insert" function be a Boots.insert method too, then Shape/Boots methods are degenerate
