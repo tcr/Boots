@@ -63,7 +63,7 @@ function Functor(p, s) {
 	// create Factory object		
 	var Factory = function () {
 		var Functor = function () {
-			call.apply(Functor, arguments);
+			return call.apply(Functor, arguments);
 		}
 		// copy and extend properties
 		augment(Functor, props);
@@ -130,34 +130,27 @@ function normalizeUnits(val) {
 	return /^[0-9]+$/.test(val) ? val + 'px' : val;
 }
 
-function getAbsolutePosition(element) {
-	var r = { x: element.offsetLeft, y: element.offsetTop };
-	if (element.offsetParent) {
-		var tmp = getAbsolutePosition(element.offsetParent);
-		r.x += tmp.x;
-		r.y += tmp.y;
-	}
-	return r;
-};
+function getElementPosition(el) {
+  var pos = {x:0, y:0}
+  var viewportElement = document.documentElement;
+  if (el == viewportElement) {
+    // viewport is always at 0,0 as that defined the coordinate system for this
+    // function - this avoids special case checks in the code below
+    return pos;
+  }
 
-function getMouseXY(e) {
-	var posx = 0;
-	var posy = 0;
-	if (!e) var e = window.event;
-	if (e.pageX || e.pageY) {
-		posx = e.pageX;
-		posy = e.pageY;
-	}
-	else if (e.clientX || e.clientY) 	{
-		posx = e.clientX + document.body.scrollLeft
-			+ document.documentElement.scrollLeft;
-		posy = e.clientY + document.body.scrollTop
-			+ document.documentElement.scrollTop;
-	}
-	// posx and posy contain the mouse position relative to the document
-	// Do something with this information
-	return {x: posx, y: posy};
-}
+  var parent = null;
+  var box;
+
+	box = el.getBoundingClientRect();
+	var scrollTop = viewportElement.scrollTop;
+	var scrollLeft = viewportElement.scrollLeft;
+
+	pos.x = box.left + scrollLeft;
+	pos.y = box.top + scrollTop;
+
+  return pos;
+};
 
 function getFunctionName(f) {
 	return f.name || f.toString().match(/function\s*(.+?)\s*\(/)[1];
@@ -173,8 +166,8 @@ function isBootsElement(elem) {
 
 var BootsElement = Functor({
 	Boots: true,
+	
 	elem: null,
-	artNode: null,
 	props: null,
 	events: null,
 	
@@ -187,16 +180,15 @@ var BootsElement = Functor({
 		// events
 		// 'motion' event
 		this.elem.onmousemove = function (e) {
-			if (events.onmotion) {
-				var left = getMouseXY(e || window.event).x - getAbsolutePosition(document.body).x
-				var top = getMouseXY(e || window.event).y - getAbsolutePosition(document.body).y;
-				events.onmotion.call(elem, left, top);
+			if (events.motion) {
+				var info = mouse();
+				events.motion.call(elem, info[1], info[2]);
 			}
 		}
 		// 'click' event
 		this.elem.onclick = function (e) {	//[todo] expand yo
-			if (events.onclick)
-				events.onclick.call(elem);
+			if (events.click)
+				events.click.apply(elem, mouse());
 		}
 	},
 	
@@ -220,6 +212,7 @@ var BootsElement = Functor({
 				elemProp[prop](this.elem, this.props[prop]);
 				
 //[TODO] styles
+		return this;
 	},
 	
 	// element manipulation
@@ -248,9 +241,6 @@ var BootsElement = Functor({
 	},
 	append: function () {
 		this._insert(this.elem, null, arguments);
-		// ensure art node always comes first
-		if (this.artNode)
-			this.elem.insertBefore(this.artNode, this.elem.firstChild);
 	},
 	prepend: function () {
 		this._insert(this.elem, this.elem.firstChild, arguments);
@@ -262,7 +252,7 @@ var BootsElement = Functor({
 		this._insert(this.elem.parentNode, this.elem, arguments);
 	},
 	remove: function () {
-		this.elem.parentNode.removeChild(ret.elem);
+		this.elem.parentNode.removeChild(this.elem);
 	},
 	
 	// property reading
@@ -270,18 +260,16 @@ var BootsElement = Functor({
 	text: function () { return this.elem.innerHTML || this.elem.value; }, //[TODO] innerText
 	height: function () { return this.elem.offsetHeight; },
 	width: function () { return this.elem.offsetWidth; },
-	left: function () { return getAbsolutePosition(this.elem).x - getAbsolutePosition(document.body).x; },
-	top: function () { return getAbsolutePosition(this.elem).y - getAbsolutePosition(document.body).y; },
+	left: function () { return getElementPosition(this.elem).x - getElementPosition(document.body).x; },
+	top: function () { return getElementPosition(this.elem).y - getElementPosition(document.body).y; },
 	toString: function () { return '[Boots ' + this.elem.tagName + ']'; },
 	
 	// property manipulation
 	
 	hide: function () { this.elem.style.display = 'none'; },
 	show: function () { this.elem.style.display = ''; },
-	move: function (t, l) {
-		this.elem.style.position = 'absolute';
-		this.elem.style.top = t + 'px';
-		this.elem.style.left = l + 'px';
+	move: function (left, top) {
+		this.apply(this, [{top: top, left: left}]);
 	}
 });
 
@@ -295,8 +283,11 @@ var elemProp = {
 	margin_bottom: function (elem, val) { elem.style.marginBottom = normalizeUnits(val); },
 	margin_left: function (elem, val) { elem.style.marginLeft = normalizeUnits(val); },
 	top: function (elem, val) { elem.style.position = 'absolute'; elem.style.top = normalizeUnits(val); },
+	y: function (elem, val) { elem.style.position = 'absolute'; elem.style.top = normalizeUnits(val); },
 	left: function (elem, val) { elem.style.position = 'absolute'; elem.style.left = normalizeUnits(val); },
+	x: function (elem, val) { elem.style.position = 'absolute'; elem.style.left = normalizeUnits(val); },
 	stroke: function (elem, val) { elem.style.color = normalizeColor(val).val; }, //[TODO] ban patterns?
+	align: function (elem, val) { elem.style.textAlign = val; }, 
 	
 	// attributes
 	scroll: function (elem, val) { elem.style.overflow = val ? 'scroll' : 'hidden'; },
@@ -311,12 +302,9 @@ var elemProp = {
 
 var Boots = {
 	app: function () {
-		var ret = Boots.create(document.body);
+		var ret = new BootsElement(document.body);
 		ret.apply(ret, [background({fill: white})].concat([].slice.apply(arguments, [])));
 		return ret;
-	},
-	create: function (elem) {
-		return new BootsElement(elem);
 	}
 };
 
@@ -327,14 +315,14 @@ var Boots = {
 function stack() {
 	var elem = document.createElement('div');
 	elem.className = 'stack';
-	var ret = Boots.create(elem);
+	var ret = new BootsElement(elem);
 	return ret.apply(ret, arguments);
 }
 
 function flow() {
 	var elem = document.createElement('div');
 	elem.className = 'flow';
-	var ret = Boots.create(elem);
+	var ret = new BootsElement(elem);
 	return ret.apply(ret, arguments);
 }
 
@@ -345,12 +333,12 @@ function flow() {
 function edit_line() {
 	var elem = document.createElement('input');
 	elem.type = 'text';
-	var ret = Boots.create(elem);
+	var ret = new BootsElement(elem);
 	return ret.apply(ret, arguments);
 }
 
 function button() {
-	var ret = Boots.create(document.createElement('button'));
+	var ret = new BootsElement(document.createElement('button'));
 	return ret.apply(ret, arguments);
 }
 
@@ -359,7 +347,7 @@ function button() {
  */
  
 function TextBlock(elem, args) {
-	var ret = Boots.create(elem);
+	var ret = new BootsElement(elem);
 	ret.replace = function () {
 		str = '';
 		for (var i = 0; i < arguments.length; i++)
@@ -402,47 +390,47 @@ function inscription() {
  */
 
 function code() {
-	var ret = Boots.create(document.createElement('code'));
+	var ret = new BootsElement(document.createElement('code'));
 	return ret.apply(ret, arguments);
 }
 
 function del() {
-	var ret = Boots.create(document.createElement('del'));
+	var ret = new BootsElement(document.createElement('del'));
 	return ret.apply(ret, arguments);
 }
 
 function em() {
-	var ret = Boots.create(document.createElement('em'));
+	var ret = new BootsElement(document.createElement('em'));
 	return ret.apply(ret, arguments);
 }
 
 function ins() {
-	var ret = Boots.create(document.createElement('ins'));
+	var ret = new BootsElement(document.createElement('ins'));
 	return ret.apply(ret, arguments);
 }
 /*
 function link() {
-	var ret = Boots.create(document.createElement('a'));
+	var ret = new BootsElement(document.createElement('a'));
 	return ret.apply(ret, arguments);
 }
 */
 function span() {
-	var ret = Boots.create(document.createElement('span'));
+	var ret = new BootsElement(document.createElement('span'));
 	return ret.apply(ret, arguments);
 }
 
 function strong() {
-	var ret = Boots.create(document.createElement('strong'));
+	var ret = new BootsElement(document.createElement('strong'));
 	return ret.apply(ret, arguments);
 }
 
 function sub() {
-	var ret = Boots.create(document.createElement('sub'));
+	var ret = new BootsElement(document.createElement('sub'));
 	return ret.apply(ret, arguments);
 }
 
 function sup() {
-	var ret = Boots.create(document.createElement('sup'));
+	var ret = new BootsElement(document.createElement('sup'));
 	return ret.apply(ret, arguments);
 }
 
@@ -474,17 +462,17 @@ Gradient = Structure.extend({
 		this.id = 'gradient' + Date.now();
 	},
 	apply: function (svg, elem) {
-		var defs = svg.appendChild(document.createElementNS('http://www.w3.org/2000/svg', 'defs'));
-		var linear = defs.appendChild(document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient'));
+		var defs = svg.appendChild(new SVGElement('defs'));
+		var linear = defs.appendChild(new SVGElement('linearGradient'));
 		linear.setAttribute('id', this.id);
 		linear.setAttribute('x1', '0%');
 		linear.setAttribute('x2', '0%');
 		linear.setAttribute('y1', '0%');
 		linear.setAttribute('y2', '100%');
-		var stop1 = linear.appendChild(document.createElementNS('http://www.w3.org/2000/svg', 'stop'));
+		var stop1 = linear.appendChild(new SVGElement('stop'));
 		stop1.setAttribute('offset', '0%');
 		stop1.setAttribute('style', 'stop-color:' + this.from.val);
-		var stop2 = linear.appendChild(document.createElementNS('http://www.w3.org/2000/svg', 'stop'));
+		var stop2 = linear.appendChild(new SVGElement('stop'));
 		stop2.setAttribute('offset', '100%');
 		stop2.setAttribute('style', 'stop-color:' + this.to.val);
 		return 'url(#' + this.id + ')';
@@ -510,141 +498,66 @@ blue = rgb(0, 0, 255);
  * art
  */
  
-BootsShape = Structure.extend({
-	shape: null,
-	props: null,
-	constructor: function (shape, props) {
-		this.shape = shape;
-		this.props = props || {};
-	},
-	Boots: true,
-	_insert: function (svg) {
-		if (this.props.fill)
-			this.shape.setAttribute('fill', normalizeColor(this.props.fill).apply(svg, this.shape));
-		if (this.props.stroke)
-			this.shape.setAttribute('stroke', normalizeColor(this.props.stroke).apply(svg, this.shape));
-		if (this.props.strokewidth)
-			this.shape.setAttribute('strok-width', this.props.strokewidth);
-		svg.appendChild(this.shape);
-	},
-	
-	
-	_appendTo: function (parent) {
-	},
-	_prependTo: function (parent) {
-	},
-	_insertAfter: function (sibling) {
-	},
-	_insertBefore: function (sibling) {
-	}
-	
-	
-	_insert: function (parent, child, args) {
-		// content
-		if (isContentValue(parent)) {
-			parent.value += (args[0] || '');
-		} else {
-			for (var i = 0; i < args.length; i++)
-				if (args[i] && isBootsElement(args[i]))
-					parent.insertBefore(args[i].elem, child);
-				else
-					parent.insertBefore(document.createTextNode(args[i]), child);
-		}
-	},
-	clear: function () {
-		if (isContentValue(this.elem))
-			this.elem.value = '';
-		else {
-			while (this.elem.firstChild)
-				this.elem.removeChild(this.elem.firstChild);
-			this.artNode = null;
-		}
-		this._insert(this.elem, null, arguments);
-	},
-	append: function () {
-		this._insert(this.elem, null, arguments);
-		// ensure art node always comes first
-		if (this.artNode)
-			this.elem.insertBefore(this.artNode, this.elem.firstChild);
-	},
-	prepend: function () {
-		this._insert(this.elem, this.elem.firstChild, arguments);
-	},
-	after: function () {
-		this._insert(this.elem.parentNode, this.elem.nextSibling, arguments);
-	},
-	before: function () {
-		this._insert(this.elem.parentNode, this.elem, arguments);
-	},
-	remove: function () {
-		this.elem.parentNode.removeChild(ret.elem);
-	},
-});
-
-//[TODO] have the "insert" function be a Boots.insert method too, then Shape/Boots methods are degenerate
- 
-function createSVG(bg) {
-	var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-	svg.setAttribute('style', 'z-index: ' + (bg ? 0 : 5) + '; position: absolute; top: 0; left: 0;');
-	return svg;
-}
-
-function createSVGElement(svg, tagName) {
-	return svg.appendChild(document.createElementNS('http://www.w3.org/2000/svg', tagName));
+function SVGElement(tagName) {
+	return document.createElementNS('http://www.w3.org/2000/svg', tagName);
 }
  
-function createShapeStyle(svg, shape, props) {
+function BootsShape(shape, props) {
+	// create svg element
+	var svg = new SVGElement('svg');
+	svg.setAttribute('style', 'position: absolute; top: 0; left: 0;');
+	svg.appendChild(shape);
+	
+	// add shape style
 	props = props || {}
 	if (props.fill)
 		shape.setAttribute('fill', normalizeColor(props.fill).apply(svg, shape));
 	if (props.stroke)
 		shape.setAttribute('stroke', normalizeColor(props.stroke).apply(svg, shape));
 	if (props.strokewidth)
-		shape.setAttribute('strok-width', props.strokewidth);
+		shape.setAttribute('stroke-width', props.strokewidth);
+		
+	// remove interfering attributes
+	//[TODO] wtf
+	delete props.width;
+	delete props.height;
+	delete props.stroke;
+	
+	var ret = new BootsElement(svg);
+	return ret.apply(ret, [props]);
 }
- 
-// note: isn't in bg
+
 function background(props) {
-	var svg = createSVG(false);
-	var rect = createSVGElement(svg, 'rect');
-	rect.setAttribute('width', '100%');
-	rect.setAttribute('height', '100%');
-	createShapeStyle(svg, rect, props);
-	// we attach svg element
-	return Boots.create(svg);
+	props.width = props.width || '100%';
+	props.height = props.height || '100%';
+	return rect(props);
 }
 
-function rect(t,l,w,h, props) {
-	var svg = createSVG(true);
-	var rect = createSVGElement(svg, 'rect');
-	rect.setAttribute('width', w);
-	rect.setAttribute('height', h);
-	rect.setAttribute('y', t);
-	rect.setAttribute('x', l);
-	createShapeStyle(svg, rect, props);
-	return Boots.create(svg);
+function rect(props) {
+	var rect = new SVGElement('rect');
+	rect.setAttribute('width', props.width || 0);
+	rect.setAttribute('height', props.height || 0);
+	rect.setAttribute('y', 0);
+	rect.setAttribute('x', 0);
+	return new BootsShape(rect, props);
 }
 
-function line(l,t,x2,y2, props) {
-	var svg = createSVG(true);
-	var line = createSVGElement(svg, 'line');
-	line.setAttribute('x1', l);
-	line.setAttribute('x2', x2);
-	line.setAttribute('y1', t);
-	line.setAttribute('y2', y2);
-	createShapeStyle(svg, line, props);
-	return Boots.create(svg);
+function line(props) {
+	var line = new SVGElement('line');
+	line.setAttribute('x1', 0);
+	line.setAttribute('y1', 0);
+	line.setAttribute('x2', (props.x2||0) - (props.x||0));	//[todo] what if props.left !?
+	line.setAttribute('y2', (props.y2||0) - (props.y||0));
+	return new BootsShape(line, props);
 }
 
-function oval(x, y, r, props) {
+function oval(props) {
 	//[TODO] center: attr
-	var svg = createSVG(true);
-	var oval = createSVGElement(svg, 'circle');
-	oval.setAttribute('r', r);
-	oval.setAttribute('cy', y);
-	oval.setAttribute('cx', x);
-	createShapeStyle(svg, oval, props);
-	return Boots.create(svg);
+	var oval = new SVGElement('circle');
+	oval.setAttribute('r', props.radius || 0);
+	oval.setAttribute('cy', props.radius || 0);
+	oval.setAttribute('cx', props.radius || 0);
+	return new BootsShape(oval, props);
 }
 
 /*
@@ -659,7 +572,29 @@ function download(url, opts, funcs) {
 }
 
 function mouse() {
+	return [mouse.BUTTON, mouse.COORDS.x, mouse.COORDS.y];
 }
+mouse.COORDS = {x: 0, y: 0};
+mouse.BUTTON = 0;
+document.addEventListener('mousemove', function (e) {
+	// get body offset
+	var bodyCoords = getElementPosition(document.body);
+	// get mouse coordinates
+	mouse.COORDS = {x: 0, y: 0};
+	if (e.pageX || e.pageY)
+		mouse.COORDS = {x: e.pageX - bodyCoords.x, y: e.pageY - bodyCoords.y};
+	else if (e.clientX || e.clientY)
+		mouse.COORDS = {
+			x: e.clientX + document.body.scrollLeft + document.documentElement.scrollLeft - bodyCoords.x,
+			y: e.clientY + document.body.scrollTop + document.documentElement.scrollTop - bodyCoords.y
+		}
+}, true);
+document.addEventListener('mousedown', function (e) {
+	mouse.BUTTON = e.button;
+}, true);
+document.addEventListener('mouseup', function (e) {
+	mouse.BUTTON = 0;
+}, true);
 
 function visit() {
 }

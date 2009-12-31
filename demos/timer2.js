@@ -59,7 +59,7 @@ function reset() {
 }
 
 Boots.app({width: 200, height: 120, resizable: false},
-	//background({fill: gradient('#222', '#aaa')}),
+	background({fill: gradient('#222', '#aaa')}),
 	
 	$display = stack({margin: 10}),
 	
