@@ -1,4 +1,4 @@
-Light = Structure.extend({
+Light = new Class({
 	centerx: 0,
 	centery: 0,
 	
@@ -64,7 +64,7 @@ start = false
 
 lights = []
 
-Boots.app({width: width, height: height},
+Boots.app({title: 'Escape', width: width, height: height},
 	background(black),
 	light_slot = stack(),
 	

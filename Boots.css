@@ -1,6 +1,6 @@
 * { -webkit-box-sizing: border-box; -moz-box-sizing: border-box; }
-html { background: #333; font-family: sans-serif; overflow: hidden; }
-body { position: relative; margin: 50px auto;}
+html { background: #333; font-family: sans-serif; overflow: hidden; font-size: 100%; }
+body { position: relative; margin: 50px 50px; float: left; }
 
 div.stack > * { display: block; }
 div.flow > * { display: inline-block; }
@@ -15,7 +15,8 @@ h5 { font-size: 14px; }
 body { font-size: 12px; }
 h6 { font-size: 10px; }
 
+h1, h2, h3, h4, h5, h6, p { margin: 0.5em 0; }
+
 p { width: 100%; } /* contested */
 
-input, button { position: relative; }
-input[type="text"] { width: 200px; height: 28px; }
+input[type="text"] { width: 200px; height: 28px; } /* contested */

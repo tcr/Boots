@@ -3,7 +3,7 @@
 
 // A button that toggles between two buttons
 
-ToggleButton = Structure.extend({
+ToggleButton = new Class({
 	constructor: function (box, width, bef, b1, b2) {
 		$box = box
 		$width = width
@@ -58,7 +58,7 @@ function reset() {
 	$times = []
 }
 
-Boots.app({width: 200, height: 120, resizable: false},
+Boots.app({title: 'Timer', width: 200, height: 120, resizable: false},
 	background({fill: gradient('#222', '#aaa')}),
 	
 	$display = stack({margin: 10}),

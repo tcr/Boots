@@ -1,0 +1,1 @@
+ * $app.para('text') -- Should append a paragraph to an application or slot?

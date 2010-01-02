@@ -3,9 +3,9 @@
  *-------------------------------------------------
  * http://shoes.heroku.com/manual/Hello.html
  */
-
-function Structure() { }
-Structure.extend = function (p, s) {
+ 
+function BaseClass() { }
+BaseClass.extend = function (p, s) {
 	var OP = Object.prototype;
 	function augment(obj, props) {
 		// iterate all defined properties
@@ -24,10 +24,10 @@ Structure.extend = function (p, s) {
 	var props = p || {}, statics = s || {};
 	// create factory object
 	var ancestor = this, Factory = OP.hasOwnProperty.call(props, 'constructor') ?
-	    props.constructor : function () { ancestor.apply(this, arguments); }
+		props.constructor : function () { ancestor.apply(this, arguments); }
 	
 	// copy and extend statics
-	augment(Factory, Structure);
+	augment(Factory, this);
 	augment(Factory, statics);
 	// copy and extend prototype
 	var Super = function () { };
@@ -39,6 +39,10 @@ Structure.extend = function (p, s) {
 	// return new factory object			
 	return Factory;
 };
+
+function Class() {
+	return BaseClass.extend.apply(BaseClass, arguments);
+}
 
 function Functor(p, s) {
 	var OP = Object.prototype;
@@ -164,7 +168,7 @@ function isBootsElement(elem) {
 	return !!elem.Boots;
 }
 
-var BootsElement = Functor({
+var BootsElement = new Functor({
 	Boots: true,
 	
 	elem: null,
@@ -184,12 +188,17 @@ var BootsElement = Functor({
 				var info = mouse();
 				events.motion.call(elem, info[1], info[2]);
 			}
-		}
+		};
 		// 'click' event
-		this.elem.onclick = function (e) {	//[todo] expand yo
+		this.elem.onclick = function (e) {
 			if (events.click)
 				events.click.apply(elem, mouse());
-		}
+		};
+		// 'keypress' event
+		this.elem.onchange = function (e) {
+			if (events.change)
+				events.change.call(elem, elem.value);
+		};
 	},
 	
 	call: function () {			
@@ -233,9 +242,9 @@ var BootsElement = Functor({
 		if (isContentValue(this.elem))
 			this.elem.value = '';
 		else {
-			while (this.elem.firstChild)
-				this.elem.removeChild(this.elem.firstChild);
-			this.artNode = null;
+			//while (this.elem.firstChild)
+			//	this.elem.removeChild(this.elem.firstChild);
+			this.elem.innerHTML = '';
 		}
 		this._insert(this.elem, null, arguments);
 	},
@@ -442,7 +451,7 @@ function normalizeColor(color) {
 	return (typeof color == 'string') ? new Color(color) : color || new Color('#000');
 }
  
-Color = Structure.extend({
+Color = new Class({
 	val: null,
 	constructor: function (val) {
 		this.val = val
@@ -452,7 +461,7 @@ Color = Structure.extend({
 	}
 })
 
-Gradient = Structure.extend({
+Gradient = new Class({
 	from: null,
 	to: null,
 	id: null,
@@ -484,23 +493,29 @@ function gradient(from, to) {
 }
 
 function rgb(r, g, b, a) {
-	return new Color('rgb(' + r + ',' + g + ',' + b + ')'); //[TODO] alpha
+	return new Color('rgba(' + r*100 + '%,' + g*100 + '%,' + b*100 + '%,' + (a == undefined ? 1.0 : a) + ')');
+}
+
+function gray(l, a) {
+	return rgb(l,l,l,a);
 }
 
 // explicit color definitions
 black = rgb(0, 0, 0);
-gray = rgb(128, 128, 128);
-white = rgb(255, 255, 255);
-red = rgb(255, 0, 0);
-blue = rgb(0, 0, 255);
+white = rgb(1.0, 1.0, 1.0);
+red = rgb(1.0, 0, 0);
+blue = rgb(0, 0, 1.0);
 
 /*
  * art
  */
  
 function SVGElement(tagName) {
-	return document.createElementNS('http://www.w3.org/2000/svg', tagName);
+	if (SVGElement.memo[tagName])
+		return SVGElement.memo[tagName].cloneNode(false);
+	return SVGElement.memo[tagName] = document.createElementNS('http://www.w3.org/2000/svg', tagName);
 }
+SVGElement.memo = {}
  
 function BootsShape(shape, props) {
 	// create svg element
@@ -607,7 +622,7 @@ function visit() {
  */
  
 function each(arr, func) {
-	for (var i = 0; i < arr.length; i++)
+	for (var i = 0, l = arr.length; i < l; i++)
 		func(arr[i], arr, i);
 }
 
@@ -618,6 +633,12 @@ function times(i, func) {
 
 function rand(max) {
 	return Math.floor(Math.random() * max);
+}
+
+function range(min, max) {
+	for (var inc = min < max ? 1 : -1, range = [], i = min; i != max; i += inc)
+		range.push(i);
+	return range.concat([max]);
 }
 
 window.Time = Date;
