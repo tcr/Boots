@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <title>Boots</title>
+	<link href="../Boots.css" rel="stylesheet">
+	<script src="../Boots.js"></script>
+  </head>
+  <body>
+    <script>
+
+Boots.app({title: 'Boots Example', width: 300, padding: 15},
+	stack(
+		title('Boots Example'),
+		para('This is an example of ', strong('Boots'), ', a tiny GUI toolkit for JavaScript.'),
+		$button = button('Click me!',
+			function click(e) {
+				$label('Button has been CLICKed! :o');
+			},
+			function release(e) {
+				$label('Button has been RELEASEd! :D');
+			}
+		),
+		$label = span('Waiting on you. :)')
+	)
+);
+
+/*
+Boots.app(
+	stack({width: 100},
+		para('First asfdklasfdkl;asfdj;klafsdj;kafsdl as;dfjkasdlf as;lkjfda;sjdffklasf ;al ksjdf;askl jasfj kj;salads as asdf;l k'),
+		para('Second asfdkj a;lkjasfd; lalkjsfd lk;asjfasa f;lkjasfd ;lkajsfd ;klasdfjl;k asjflk;asjfd ;lksafdkj as;ldk'),
+		para('Third;a sfdlkj;aslkjfd l;aksfdj ;laskdf j;alskdjf ;alskdjf a;slkfdj sal;fa;lk sfdjas;dlfkkj asdf')
+	)
+);
+*/
+	
+	</script>
+  </body>
+</html>
