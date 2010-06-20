@@ -1,6 +1,7 @@
 * { -webkit-box-sizing: border-box; -moz-box-sizing: border-box; }
 html { background: #333; font-family: sans-serif; overflow: hidden; font-size: 100%; }
-body { position: relative; margin: 0; }
+body { }
+#boots-frame { position: relative; margin: 50px auto 0; overflow: hidden; }
 
 div.stack > * { display: block; }
 div.flow > * { display: inline-block; }

@@ -293,8 +293,8 @@ var BootsElement = new Functor({
 	text: function () { return this.elem.innerHTML || this.elem.value; }, //[TODO] innerText
 	height: function () { return this.elem.offsetHeight; },
 	width: function () { return this.elem.offsetWidth; },
-	left: function () { return getElementPosition(this.elem).x - getElementPosition(document.body).x; },
-	top: function () { return getElementPosition(this.elem).y - getElementPosition(document.body).y; },
+	left: function () { return getElementPosition(this.elem).x - getElementPosition(document.getElementById('boots-frame')).x; },
+	top: function () { return getElementPosition(this.elem).y - getElementPosition(document.getElementById('boots-frame')).y; },
 	toString: function () { return '[Boots ' + this.elem.tagName + ']'; },
 	
 	// property manipulation
@@ -315,6 +315,11 @@ var elemProp = {
 	margin_right: function (elem, val) { elem.style.marginRight = normalizeUnits(val); },
 	margin_bottom: function (elem, val) { elem.style.marginBottom = normalizeUnits(val); },
 	margin_left: function (elem, val) { elem.style.marginLeft = normalizeUnits(val); },
+	padding: function (elem, val) { elem.style.padding = normalizeUnits(val); },
+	padding_top: function (elem, val) { elem.style.paddingTop = normalizeUnits(val); },
+	padding_right: function (elem, val) { elem.style.paddingRight = normalizeUnits(val); },
+	padding_bottom: function (elem, val) { elem.style.paddingBottom = normalizeUnits(val); },
+	padding_left: function (elem, val) { elem.style.paddingLeft = normalizeUnits(val); },
 	top: function (elem, val) { elem.style.position = 'absolute'; elem.style.top = normalizeUnits(val); },
 	y: function (elem, val) { elem.style.position = 'absolute'; elem.style.top = normalizeUnits(val); },
 	left: function (elem, val) { elem.style.position = 'absolute'; elem.style.left = normalizeUnits(val); },
@@ -335,7 +340,10 @@ var elemProp = {
 
 var Boots = {
 	app: function () {
-		var ret = new BootsElement(document.body);
+		// create framing
+		var elem = document.body.appendChild(document.createElement('div'));
+		elem.id = "boots-frame";
+		var ret = new BootsElement(elem);
 		ret.apply(ret, [background({fill: white})].concat([].slice.apply(arguments, [])));
 //		resizeDocumentTo(ret.props.width, ret.props.height);
 		return ret;
@@ -630,7 +638,7 @@ mouse.COORDS = {x: 0, y: 0};
 mouse.BUTTON = 0;
 document.addEventListener('mousemove', function (e) {
 	// get body offset
-	var bodyCoords = getElementPosition(document.body);
+	var bodyCoords = getElementPosition(document.getElementById('boots-frame'));
 	// get mouse coordinates
 	mouse.COORDS = {x: 0, y: 0};
 	if (e.pageX || e.pageY)
