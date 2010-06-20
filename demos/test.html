@@ -9,19 +9,19 @@
   <body>
     <script>
 
-Boots.app({title: 'Boots Example', width: 300},
+Boots.app({title: 'Boots Example', width: 300, padding: 15},
 	stack(
 		title('Boots Example'),
 		para('This is an example of ', strong('Boots'), ', a tiny GUI toolkit for JavaScript.'),
-		para('Boots is a simple way to markup HTML content in JavaScript. It also provides a simple way to template HTML content.'),
 		$button = button('Click me!',
-			function mousedown(e) {
-				$button('Button mousedown!');
+			function click(e) {
+				$label('Button has been CLICKed! :o');
 			},
-			function mouseup(e) {
-				$button('Button mouseup!');
+			function release(e) {
+				$label('Button has been RELEASEd! :D');
 			}
-		)
+		),
+		$label = span('Waiting on you. :)')
 	)
 );
 
