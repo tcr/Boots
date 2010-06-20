@@ -1,3 +1,5 @@
+// http://the-shoebox.org/apps/171
+
 Light = new Class({
 	centerx: 0,
 	centery: 0,
