@@ -160,6 +160,14 @@ function getFunctionName(f) {
 	return f.name || f.toString().match(/function\s*(.+?)\s*\(/)[1];
 }
 
+function resizeDocumentTo(setw,seth) {
+	window.resizeTo(setw,seth);
+	setTimeout(function () {
+		window.resizeTo(setw*2-(window.innerWidth||document.documentElement.clientWidth),seth*2-(window.innerHeight||document.documentElement.clientHeight));
+	},10);
+}
+
+
 /*
  * Boots
  */
@@ -182,6 +190,13 @@ var BootsElement = new Functor({
 		var props = this.props = {};
 		
 		// events
+		// 'click' event
+		this.elem.onmousedown = function (e) {
+			if (events.click)
+				events.click.apply(elem, mouse());
+			// prevent dragging
+			e.preventDefault()
+		};
 		// 'motion' event
 		this.elem.onmousemove = function (e) {
 			if (events.motion) {
@@ -189,10 +204,10 @@ var BootsElement = new Functor({
 				events.motion.call(elem, info[1], info[2]);
 			}
 		};
-		// 'click' event
-		this.elem.onclick = function (e) {
-			if (events.click)
-				events.click.apply(elem, mouse());
+		// 'release' event
+		this.elem.onmouseup = function (e) {
+			if (events.release)
+				events.release.apply(elem, mouse());
 		};
 		// 'keypress' event
 		this.elem.onchange = function (e) {
@@ -231,6 +246,15 @@ var BootsElement = new Functor({
 		if (isContentValue(parent)) {
 			parent.value += (args[0] || '');
 		} else {
+		/*
+			var frag = document.createDocumentFragment();
+			for (var i = 0; i < args.length; i++)
+				if (args[i] && isBootsElement(args[i]))
+					frag.appendChild(args[i].elem);
+				else
+					frag.appendChild(document.createTextNode(args[i]));
+			parent.insertBefore(frag, child);
+		*/
 			for (var i = 0; i < args.length; i++)
 				if (args[i] && isBootsElement(args[i]))
 					parent.insertBefore(args[i].elem, child);
@@ -239,9 +263,9 @@ var BootsElement = new Functor({
 		}
 	},
 	clear: function () {
-		if (isContentValue(this.elem))
+		if (isContentValue(this.elem)) {
 			this.elem.value = '';
-		else {
+		} else {
 			//while (this.elem.firstChild)
 			//	this.elem.removeChild(this.elem.firstChild);
 			this.elem.innerHTML = '';
@@ -313,6 +337,7 @@ var Boots = {
 	app: function () {
 		var ret = new BootsElement(document.body);
 		ret.apply(ret, [background({fill: white})].concat([].slice.apply(arguments, [])));
+//		resizeDocumentTo(ret.props.width, ret.props.height);
 		return ret;
 	}
 };
@@ -453,10 +478,13 @@ function normalizeColor(color) {
  
 Color = new Class({
 	val: null,
-	constructor: function (val) {
-		this.val = val
+	alpha: 1.0,
+	constructor: function (val, alpha) {
+		this.val = val;
+		this.alpha = alpha;
 	},
 	apply: function (svg, elem) {
+		elem.setAttribute('opacity', this.alpha);
 		return this.val;
 	}
 })
@@ -493,7 +521,7 @@ function gradient(from, to) {
 }
 
 function rgb(r, g, b, a) {
-	return new Color('rgba(' + r*100 + '%,' + g*100 + '%,' + b*100 + '%,' + (a == undefined ? 1.0 : a) + ')');
+	return new Color('rgb(' + r*100 + '%,' + g*100 + '%,' + b*100 + '%)', a == undefined ? 1.0 : a);
 }
 
 function gray(l, a) {
@@ -529,12 +557,18 @@ function BootsShape(shape, props) {
 		shape.setAttribute('fill', normalizeColor(props.fill).apply(svg, shape));
 	if (props.stroke)
 		shape.setAttribute('stroke', normalizeColor(props.stroke).apply(svg, shape));
-	if (props.strokewidth)
+	if (props.strokewidth) {
+		document.title = props.strokewidth;
 		shape.setAttribute('stroke-width', props.strokewidth);
+		props.width += props.strokewidth*2;
+		props.height += props.strokewidth*2;
+		props.margin_left = (props.margin_left||0) + -props.strokewidth;
+		props.margin_top = (props.margin_top||0) + -props.strokewidth;
+	}
 	// 'center' attribute
 	if (props.center) {
-		props.margin_left = -props.width / 2;
-		props.margin_top = -props.height / 2;
+		props.margin_left = (props.margin_left||0) +-props.width / 2;
+		props.margin_top = (props.margin_top||0) +-props.height / 2;
 	}
 	
 	var ret = new BootsElement(svg);

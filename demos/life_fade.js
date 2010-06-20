@@ -7,6 +7,7 @@
 // kevinc, connerk@gmail.com
 
 clicking = false
+paused = false
 
 Life = {
 	CRITTERS_TO_START_WITH: 100, // The amount of critters to make if you seed.
@@ -34,9 +35,9 @@ Life = {
 	
 	set_speed: function (speed_factor) {
 		if (paused)
-			paused = Math.int(speed_factor * 50 + 1)
+			paused = Math.round(speed_factor * 50 + 1)
 		else
-			Life.speed = Math.int(speed_factor * 50 + 1)
+			Life.speed = Math.round(speed_factor * 50 + 1)
 	}, 
 	
 	// Let's us change speed without messing with the animate loop.
@@ -72,7 +73,7 @@ Life = {
   
 	// Delegate clicks to the GoldenPlain or to the Slider, as necessary
 	click: function (button, x, y) {
-		if (button == 1)
+		//if (button == 1)
 			if (y < Life.PIXEL_HEIGHT) {
 				clicking = true
 				GoldenPlain.click(x, y, true)
@@ -87,10 +88,10 @@ Life = {
 	},
 	
 	release: function (button,x,y) {
-		if (button == 1) {
+		//if (button == 1) {
 			clicking = false
 			ControlPanel.end_slide()
-		}
+		//}
 	}
 }
 
@@ -125,7 +126,9 @@ GoldenPlain = {
 	},
 	
 	draw: function () {
-		GoldenPlain.plain.clear()
+var oldPlain = GoldenPlain.plain;
+GoldenPlain.plain = flow({margin: 0, top: 0, left:0, width: Life.PIXEL_WIDTH, height: Life.PIXEL_HEIGHT + 10});
+//		GoldenPlain.plain.clear()
 		if (GoldenPlain.background_text)
 			GoldenPlain.plain.append(
 				para(GoldenPlain.background_text, {stroke: rgb(255*0.1, 255*0.1, 255*0.3), top: 177, left: 107, font: '180px'})
@@ -138,11 +141,13 @@ GoldenPlain = {
 			else if (previous_critters[x][y])
 				previous_critters[x][y].draw(1.0 - Life.fade_interpolant)
 		})
+oldPlain.after(GoldenPlain.plain);
+oldPlain.remove();
 	},
 	
 	// Makes it easier to draw critters than it is to erase them.
 	click: function (x, y, new_click) {
-		var x = Math.int(x/Life.UNIT), y = Math.int(y/Life.UNIT)
+		var x = Math.round(x/Life.UNIT), y = Math.round(y/Life.UNIT)
 		if (x >= 0 && x < Life.WIDTH && y >= 0 && y < Life.HEIGHT)
 			if (critters[x][y])
 				if (new_click)
@@ -208,8 +213,8 @@ ControlPanel = {
 	// Setup the controls - they will not be redrawn.
 	setup: function () {
 		$app.append(
+			rect({left: 0, top: Life.PIXEL_HEIGHT, width: Life.PIXEL_WIDTH, height: Life.CONTROLS_HEIGHT, fill: gray(.1)}),
 			flow({margin_top: 4, margin_left: 15, top: Life.PIXEL_HEIGHT + 10, left: 0},
-				rect({left: 0, top: Life.PIXEL_HEIGHT, width: Life.PIXEL_WIDTH, height: Life.CONTROLS_HEIGHT, fill: gray(.1)}),
 				button('Clear', {width: 85}, function click() {
 					Life.set_time_between_frames(0.0)
 					GoldenPlain.reset()
@@ -252,15 +257,15 @@ Slider = new Class({
 	
 	constructor: function () {
 		$app.append(
-			this.slider = oval({x: this.x, y: this.y, radius: this.dimensions*2, fill: gray(0.8, 0.7), stroke: gray(1.0, 0.8), strokewidth: 3}),
+			para('Speed:', {stroke: gray(0.95), font: '14px', left: Slider.LEFT_END - 65, top: this.y - 5}),
 			rect({left: Slider.LEFT_END, top: this.y + 5, width: Slider.RIGHT_END - Slider.LEFT_END, height: 5}),
-			para('Speed:', {stroke: gray(0.95), font: '14px', left: Slider.LEFT_END - 65, top: this.y - 5})
+			this.slider = oval({x: this.x, y: this.y, radius: this.dimensions/2, fill: gray(0.8, 0.7), stroke: gray(1.0, 0.8), strokewidth: 3})
 		)
 	},
 	
 	// Check for clicks on the slider knob.
 	contains: function (x,y) {
-		return (x >= this.x &&  x <= this.x + this.dimensions) && (y >= this.y && y <= y + @dimensions)
+		return ((x >= this.x) && (x <= this.x + this.dimensions)) && ((y >= this.y) && (y <= this.y + this.dimensions))
 	},
 	
 	move_to: function (x, y) {
