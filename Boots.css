@@ -22,3 +22,6 @@ p { width: 100%; } /* contested */
 
 button, input { position: relative; }
 input[type="text"] { width: 200px; height: 28px; } /* contested */
+
+#boots-info { color: white; text-align: center; margin: 1em auto; font-size: 1em; font-family: Tahoma; }
+#boots-info a { color: white; }
